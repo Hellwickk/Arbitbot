@@ -50,16 +50,16 @@ def main(sym):
         for e in portfolio['data']:
             if e['currency'] == 'INR' and float(e['main_balance']) < float(inr_amount):
                 sellorder_resp = place_order("sell", usdt_to_inr_sell_amount, "wazirx", "USDT/INR",
-                                             usdt_to_inr_sell_amount * 16)
+                                             usdt_to_inr_sell_amount * 11)
                 print(sellorder_resp)
-                usdt_amount = 16
+                usdt_amount = 11
                 time.sleep(10)
 
             if e['currency'] == 'USDT' and float(e['main_balance']) < float(usdt_amount):
                 buyorder_resp = place_order("buy", usdt_to_inr_amount, "wazirx", "USDT/INR",
-                                            1500 / usdt_to_inr_amount)
+                                            980 / usdt_to_inr_amount)
                 print(buyorder_resp)
-                inr_amount = 1500
+                inr_amount = 980
                 time.sleep(10)
 
         result = []

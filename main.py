@@ -32,7 +32,7 @@ def main(sym):
             }
         ]
         # calculation of usdt amount based on INR input
-        inr_amount = config('AMOUNT_INR')
+        inr_amount = 1000
         resp = get_depth(params[4])
         usdt_data = resp['data']
         usdt_buy_data = usdt_data['asks']

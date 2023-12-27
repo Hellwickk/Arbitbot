@@ -6,6 +6,7 @@ def main():
         exchange = "WAZIRX"
         symbol = "USDT/INR"
 
+        while true:
         print("Getting portfolio information...")
         portfolio_data = get_portfolio()
         # print("Portfolio data:", portfolio_data)
@@ -51,7 +52,7 @@ def main():
                                         1000 / sell_price)
             print(buyorder_resp)
         print("End of the main function.")
-
+        time.sleep(10)
     except Exception as e:
         print("Error:", e)
 

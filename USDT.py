@@ -6,7 +6,7 @@ def main():
         exchange = "WAZIRX"
         symbol = "USDT/INR"
 
-        while true:
+        while True:
         print("Getting portfolio information...")
         portfolio_data = get_portfolio()
         # print("Portfolio data:", portfolio_data)

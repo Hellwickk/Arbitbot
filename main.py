@@ -4,8 +4,6 @@ from coinswitch import get_depth, get_min, get_max, place_order, get_order, canc
     get_active_coins
 from decouple import config
 
-# get active coins
-
 coinswitchx_coins = get_active_coins('coinswitchx')
 binance_coins = get_active_coins('binance')
 wazirx_coins = get_active_coins('wazirx')
@@ -32,45 +30,29 @@ def main(sym):
             }
         ]
         # calculation of usdt amount based on INR input
-        inr_amount = 1000
+        inr_amount = config('AMOUNT_INR')
         resp = get_depth(params[4])
-        usdt_data = resp['data']
-        usdt_buy_data = usdt_data['asks']
-        usdt_sell_data = usdt_data['bids']
-        usdt_to_inr_amount = get_min(usdt_buy_data)
-        usdt_to_inr_sell_amount = get_max(usdt_sell_data)
-        print(resp)
-        usdt_amount = float(inr_amount) / float(usdt_to_inr_amount)
-        print(usdt_to_inr_amount, usdt_amount, inr_amount, sym)
 
-        # get portfolio and adjust inr and usdt values
+        if resp is not None and 'data' in resp:
+            usdt_data = resp['data']
+            usdt_buy_data = usdt_data['asks']
+            usdt_sell_data = usdt_data['bids']
+            usdt_to_inr_amount = get_min(usdt_buy_data)
+            usdt_to_inr_sell_amount = get_max(usdt_sell_data)
+            # print(resp)
+            usdt_amount = float(inr_amount) / float(usdt_to_inr_amount)
+            print(usdt_to_inr_amount, usdt_amount, inr_amount, sym)
+        else:
+            print("Error: Unable to fetch depth data.")
         portfolio = get_portfolio()
-        print(portfolio)
-
-        for e in portfolio['data']:
-            if e['currency'] == 'INR' and float(e['main_balance']) < float(inr_amount):
-                sellorder_resp = place_order("sell", usdt_to_inr_sell_amount, "wazirx", "USDT/INR",
-                                             usdt_to_inr_sell_amount * 11)
-                print(sellorder_resp)
-                usdt_amount = 11
-                time.sleep(10)
-
-            if e['currency'] == 'USDT' and float(e['main_balance']) < float(usdt_amount):
-                buyorder_resp = place_order("buy", usdt_to_inr_amount, "wazirx", "USDT/INR",
-                                            980 / usdt_to_inr_amount)
-                print(buyorder_resp)
-                inr_amount = 980
-                time.sleep(10)
 
         result = []
         buy = {}
         sell = {}
-
         for param in params:
             # check coin availability
             if param["symbol"] in get_active_coins(param['exchange']):
                 response = get_depth(param)
-                print(response)
                 data = response['data']
                 buy_data = data['asks']
                 sell_data = data['bids']
@@ -136,7 +118,6 @@ def main(sym):
 
         if ((min_buy_key == 'binance' or max_sell_key == 'binance') and delta > 2.1) or (
                 (min_buy_key != 'binance' or max_sell_key != 'binance') and delta > 1.1):
-            # place buy order
             print('buy amount', buy_amount)
             buy_quantity = float(buy_amount) / float(buy_value)
             buyorder_resp = place_order("buy", buy_value, min_buy_key, buy_symbol, buy_quantity)
@@ -166,10 +147,15 @@ def main(sym):
                 time.sleep(60)
 
                 # sell order details
-                sell_order_details = get_order(buyorder_resp['data']['order_id'])
+                sell_order_id = sellorder_resp['data']['order_id']
+                sell_order_details = get_order(sell_order_id)
                 print(sell_order_details)
                 sell_order_status = sell_order_details['data']['status']
                 print('sell order status', sell_order_status)
+
+            if sell_order_status == "OPEN":
+                sell_cancel_resp = cancel_order(sell_order_id)
+                print(sell_cancel_resp)
 
                 if sell_order_status == "OPEN":
                     sell_cancel_resp = cancel_order(buyorder_resp['data']['order_id'])
@@ -177,6 +163,22 @@ def main(sym):
 
         else:
             print("No order placed in this round---------------------")
+
+
+def wait_for_order_execution(order_id, max_wait_time=60):
+    wait_time = 0
+    while wait_time < max_wait_time:
+        time.sleep(5)
+        order_details = get_order(order_id)
+        order_status = order_details['data']['status']
+        print(f'Order {order_id} status: {order_status}')
+
+        if order_status == "EXECUTED":
+            return
+
+        wait_time += 5
+
+    print(f"Order {order_id} was not executed within the expected time.")
 
 
 def run_function_in_thread(inputs):
@@ -192,29 +194,119 @@ def run_function_in_thread(inputs):
 
 
 if __name__ == "__main__":
-    input_values = ['BNB',
-                    'CHR',
-                    'COMP',
-                    'COTI',
-                    'CRV',
-                    'DYDX',
-                    'FTM',
-                    'GALA',
-                    'JASMY',
-                    'LRC',
-                    'MATIC',
-                    'MKR',
-                    'NKN',
-                    'OGN',
-                    'PEPE',
-                    'REN',
-                    'REQ',
-                    'SAND',
-                    'SHIB',
-                    'SNX',
-                    'TRX',
-                    'XLM',
-                    'XRP',
-                    'YFI']
+    input_values = ['1INCH',
+'AAVE',
+'ADA',
+'ADX',
+'ALGO',
+'ALICE',
+'ANKR',
+'APE',
+'ARB',
+'ARKM',
+'AST',
+'ATOM',
+'AUDIO',
+'AVAX',
+'AXS',
+'BAND',
+'BAT',
+'BCH',
+'BICO',
+'BNB',
+'BTC',
+'CAKE',
+'CELO',
+'CELR',
+'CHR',
+'CHZ',
+'COMP',
+'COTI',
+'CRV',
+'CTSI',
+'DGB',
+'DIA',
+'DOGE',
+'DOT',
+'DYDX',
+'EGLD',
+'ELF',
+'ENJ',
+'ENS',
+'EOS',
+'ETC',
+'ETH',
+'FET',
+'FIL',
+'FTM',
+'FXS',
+'GALA',
+'GAS',
+'GLM',
+'GMT',
+'GMX',
+'GRT',
+'HBAR',
+'ICP',
+'IMX',
+'IOST',
+'IOTX',
+'JASMY',
+'KNC',
+'KSM',
+'LDO',
+'LINK',
+'LPT',
+'LRC',
+'LTC',
+'LUNA2',
+'MANA',
+'MATIC',
+'MKR',
+'MTL',
+'NEAR',
+'NEO',
+'NKN',
+'NMR',
+'OGN',
+'OMG',
+'ONE',
+'OP',
+'PEPE',
+'POLYX',
+'POWR',
+'QKC',
+'QNT',
+'RDNT',
+'REN',
+'REQ',
+'RLC',
+'RNDR',
+'SAND',
+'SHIB',
+'SNT',
+'SNX',
+'SOL',
+'STORJ',
+'SUSHI',
+'SXP',
+'TFUEL',
+'THETA',
+'TLM',
+'TRX',
+'UMA',
+'UNI',
+'USDT',
+'VET',
+'WAVES',
+'XEC',
+'XEM',
+'XLM',
+'XNO',
+'XRP',
+'XTZ',
+'YFI',
+'ZIL',
+'ZRX']
     print(input_values)
     run_function_in_thread(input_values)
